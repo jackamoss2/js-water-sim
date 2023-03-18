@@ -1,0 +1,22 @@
+{
+  "name": "three-js-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jackamoss2/three-js-test.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jackamoss2/three-js-test/issues"
+  },
+  "homepage": "https://github.com/jackamoss2/three-js-test#readme",
+  "dependencies": {
+    "three": "^0.150.1"
+  }
+}
