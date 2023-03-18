@@ -1,5 +1,9 @@
+// uses wave simulation equations derived in this article:
+// https://medium.com/@matiasortizdiez/beginners-introduction-to-natural-simulation-in-python-ii-simulating-a-water-ripple-809356ffcb43
+
 import * as THREE from 'three';
 import { OrbitControls } from 'OrbitControls';
+
 
 
 // todo:
@@ -7,7 +11,7 @@ import { OrbitControls } from 'OrbitControls';
 
 // scene setup ----------------
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xa8def0);
+scene.background = new THREE.Color(0x9156d0);
 
 
 // camera setup ----------------
@@ -59,7 +63,19 @@ scene.add(dirLight);
 
 
 // plane geometry ----------------
-const geometry = new THREE.PlaneBufferGeometry(30, 30, 200, 200);
+const x_min = 0;
+const x_max = 30; // length from x_min
+const nx = 200; // number of nodes in x dimension
+const Lx = x_max - x_min; // total length of plane
+const dx = Lx / nx; // distance between nodes
+const y_min = 0;
+const y_max = x_max; // plane shape square
+const ny = nx;
+const Ly = y_max - y_min; // total width of plane
+const dy = Ly / ny;
+
+const geometry = new THREE.PlaneBufferGeometry(Lx, Ly, nx, ny); // length/width and number of vertices in each dimension
+// const count = geometry.attributes.position.count; // get total number of vertices from geometry object (nx * ny)
 const plane = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0xf2a23a }));
 plane.receiveShadow = true;
 plane.castShadow = true;
@@ -67,13 +83,57 @@ plane.rotation.x = - Math.PI / 2;
 plane.position.z = - 30;
 scene.add(plane);
 
+// wave function variables
+const c = 1; // sqrt(proportionality constant / mass)
+const CFL = 0.2; // Courant–Friedrichs–Lewy condition
+const dt = c * CFL * dx;
+const nt = 400; // number of time frames computed
+const nu = 0.002;
+
+// matrix of each vertex and elevation for each point in simulated time (t, x, y)
+var u = []; // creates u matrix with time dimension
+for (var i=0; i<2; i++) { // creates x dimension
+    u[i] = []
+    for (var j=0; j<3; j++) { // creates y dimension, populates all points with zero
+        u[i][j] = [0, 0 ,0]
+	}
+}
+
+u[0, Math.floor(Nx / 2), Math.floor(Ny / 2)] = Math.sin(0) // disturbance at t = 0
+u[1, Math.floor(Nx / 2), Math.floor(Ny / 2)] = Math.sin(1 / 10) // disturbance at t = 1
+
+// python range to js: range(5) = [...Array(5).keys()]
+
+function jsRange(start, stop) {
+	var range = [];
+    for (let i=start; i<stop; i++) {
+      range.push(i);
+    }
+  return range;
+}
+
+// const tRange = [...Array(nt-1).keys()]; // base 0
+// tRange.shift(); // transform to base 1
 
 
 
 
 function animate() {
-    requestAnimationFrame(animate);
+    // const now = Date.now() / 300;
+
+    for (let i = 0; i < count; i++) { // iterate through each vertex
+        const x = geometry.attributes.position.getX(i);
+
+        // SINE WAVE
+        const xangle = x + now
+        const xsin = Math.sin(xangle)
+        geometry.attributes.position.setZ(i, xsin);
+    }
+    geometry.computeVertexNormals();
+    geometry.attributes.position.needsUpdate = true;
+
     renderer.render(scene, camera);
+    requestAnimationFrame(animate);
 }
 animate();
 
