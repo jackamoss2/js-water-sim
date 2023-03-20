@@ -11,14 +11,14 @@ import { OrbitControls } from 'OrbitControls';
 
 // scene setup ----------------
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x9156d0);
+scene.background = new THREE.Color(0x000000);
 
 
 // camera setup ----------------
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.setZ(30);
-camera.position.setX(15);
-camera.position.setY(30);
+camera.position.setZ(0);
+camera.position.setX(-70);
+camera.position.setY(50);
 
 
 // renderer setup ----------------
@@ -33,15 +33,32 @@ renderer.shadowMap.enabled = true;
 
 // controls setup - remove when implementing? ----------------
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target = new THREE.Vector3(0, 0, -40);
+controls.target = new THREE.Vector3(0, 0, 0);
 controls.update();
 
 // light setup - rearrange before implimenting ----------------
 // ambient light
 scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 // directional light
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.0)
-dirLight.position.x += 20
+const dirLight = new THREE.DirectionalLight(0xbfb58f, 1.0)
+
+//temp
+const geometry2 = new THREE.SphereGeometry(5,5)
+const material2 = new THREE.MeshBasicMaterial({
+    color:0xffffff,
+})
+const sphere = new THREE.Mesh(geometry2, material2);
+
+sphere.position.setZ(0);
+sphere.position.setX(-90);
+sphere.position.setY(30);
+
+// scene.add(sphere);
+    
+
+
+
+dirLight.position.x += 50
 dirLight.position.y += 20
 dirLight.position.z += 20
 dirLight.castShadow = true
@@ -78,17 +95,30 @@ const ny = nx;
 const dy = Ly / (ny - 1);
 // console.log(dy)
 
+
+// load textures
+// const textureLoader = new THREE.TextureLoader();
+// const waterBaseColor = textureLoader.load("./textures/Water_002_COLOR.jpg");
+// const waterNormalMap = textureLoader.load("./textures/Water 0236normal.jpg");
+// const waterHeightMap = textureLoader.load("./textures/Water_002_DISP.png");
+// const waterRoughness = textureLoader.load("./textures/Water_002_ROUGH.jpg");
+// const waterAmbientOcclusion = textureLoader.load("./textures/Water_002_OCC.jpg");
+
+
 const geometry = new THREE.PlaneBufferGeometry(Lx, Ly, nx-1, ny-1); // length/width and number of segments (not vertices!) in each dimension
-const plane = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0xf2a23a }));
-// const material = new THREE.MeshBasicMaterial({
-//     color: 0xFF6347,
-//     wireframe: true
-// });
-// const plane = new THREE.Mesh(geometry, material);
+// const plane = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0xf2a23a }));
+const material = new THREE.MeshStandardMaterial({
+    color: 0x1a368a,
+    // normalMap: waterNormalMap,
+    // displacementMap: waterHeightMap, displacementScale: 0.01,
+    // roughnessMap: waterRoughness, roughness: 0,
+    // aoMap: waterAmbientOcclusion
+});
+const plane = new THREE.Mesh(geometry, material);
 plane.receiveShadow = true;
 plane.castShadow = true;
 plane.rotation.x = - Math.PI / 2;
-plane.position.z = - 10;
+// plane.position.z = - 10;
 scene.add(plane);
 
 // wave function variables
@@ -113,61 +143,68 @@ for (var i=0; i<3; i++) { // for past(0), present(1), and future(2) timeframes,
         u[i][j] = new Array(ny).fill(0); // create new array representing y dimension, of length ny, full of 0s
 	}
 }
-console.log('initiate matrix:')
-console.log(JSON.parse(JSON.stringify(u)));
+
 
 // console.dir(u)
 
 // u[0][Math.floor(nx / 2)][Math.floor(ny / 2)] = Math.sin(0); // disturbance at t = 0
 u[1][Math.floor(nx / 2)][Math.floor(ny / 2)] = Math.sin(1 / 10); // disturbance at t = 1
 
+// click event
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const vector3 = new THREE.Vector3();
+const maxClickDistance = 10;
+window.addEventListener('mousemove', event => {
+    // three raycaster
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const intersect = raycaster.intersectObjects(scene.children);
+    // console.log(intersect)
+
+    if (intersect.length > 0 && (intersect[0].object).geometry) {
+        const mesh = intersect[0].object
+            const geometry = mesh.geometry
+            const point = intersect[0].point
+
+            for (let i = 0; i  < geometry.attributes.position.count; i++) {
+                vector3.setX(geometry.attributes.position.getX(i))
+                vector3.setY(geometry.attributes.position.getY(i))
+                vector3.setZ(geometry.attributes.position.getZ(i))
+                const toWorld = mesh.localToWorld(vector3)
+
+                const distance = point.distanceTo(toWorld)
+                var x = geometry.attributes.position.getX(i) + Math.floor(nx/2);
+                var y = geometry.attributes.position.getY(i) + Math.floor(ny/2);
+
+                if (distance < .5) { //&& x!=0 && x!=nx && y!=0 && y!=ny ? 
+                    // add i to impacted points list
+                    impacts.push([x,y,11]);
+                }
+            }
+    }
+})
+
+
+var impacts = [
+    // [20,20,31],
+]
+
+
 var computing = false;
 var time = 0;
 function animate() {
     computing = true;
     time = time + 1;
-    console.log(JSON.parse(JSON.stringify(time)));
-
-    console.log('step 1');
-    console.log('u[0]:',JSON.parse(JSON.stringify(u[0])));
-    console.log('u[1]:',JSON.parse(JSON.stringify(u[1])));
-    console.log('u[2]:',JSON.parse(JSON.stringify(u[2])));
-    
-    
-    // testing
-    if (time < 10) {
-        console.log(u[0]);
-    }
     
     const uCopy = []
     uCopy[0] = JSON.parse(JSON.stringify(u[0]))
     uCopy[1] = JSON.parse(JSON.stringify(u[1]))
-    console.log('uCopy:')
-    console.log(uCopy)
     
     // const t = 1; // t is present, t-1 is past
     for (var x=1; x<nx-1; x++) {
         for (var y=1; y<ny-1; y++) {
-            // console.log(x,y);
-            // console.log('u[1][x][y]:',JSON.parse(JSON.stringify(u[1][x][y])));
-            // console.log('u[1][x+1][y]:',JSON.parse(JSON.stringify(u[1][x+1][y])));
-            // console.log('u[1][x-1][y]:',JSON.parse(JSON.stringify(u[1][x-1][y])));
-            // console.log('u[1][x][y+1]:',JSON.parse(JSON.stringify(u[1][x][y+1])));
-            // console.log('u[1][x][y-1]:',JSON.parse(JSON.stringify(u[1][x][y-1])));
-            // console.log('u[1][1][1]:',JSON.parse(JSON.stringify(u[1][1][1])));
-            // variables used in future value calculation
-            // const xP1 = (x + 1 % nx + nx) % nx; // x Plus 1: accounts for out of range indices by wrapping to other end
-            // const xM1 = (x - 1 % nx + nx) % nx; // x-1 wrapped
-            // const yP1 = (y + 1 % ny + ny) % ny; // y+1 wrapped
-            // const yM1 = (x - 1 % ny + ny) % ny; // y-1 wrapped
-            // const term1 = Math.pow(c, 2) * Math.pow(.5, 2)
-            // const term2 = ((u[t][xP1][y] - 2*u[t][x][y] + u[t][xM1][y])/(Math.pow(dx, 2)));
-            // const term3 = ((u[t][x][yP1] - 2*u[t][x][y] + u[t][x][yM1])/(Math.pow(dy, 2)));
-            // const term4 = 2*u[t][x][y] - u[t-1][x][y];
-            // u[t+1][x][y] = Math.round((term1 * (term2 + term3) + term4)*10000)/10000;
-            
-            
-            // u[t+1][x][y] = c * (Math.pow(dt,2)/Math.pow(dx,2)) * ((u[t][x+1][y] - 2*u[t][x][y] + u[t][x-1][y]) + (u[t][x][y+1] - 2*u[t][x][y] +u[t][x][y-1]) - nu * (u[t][x][y] - u[t-1][x][y])/dt) + 2*u[t][x][y] - u[t-1][x][y];
             u[2][x][y] = c * (Math.pow(dt,2)/Math.pow(dx,2)) * ((uCopy[1][x+1][y] - 2*uCopy[1][x][y] + uCopy[1][x-1][y]) + (uCopy[1][x][y+1] - 2*uCopy[1][x][y] +uCopy[1][x][y-1]) - nu * (uCopy[1][x][y] - uCopy[0][x][y])/dt) + 2*uCopy[1][x][y] - uCopy[0][x][y];
 
             if (x == nx-2 && y == ny-2) {
@@ -176,20 +213,28 @@ function animate() {
         }
     }
     
-    console.log(time)
-    // generate initial disturbance
-    if (time < 100) {
-            u[2][Math.floor(nx /2 )][Math.floor(ny / 2)] = Math.sin((time+1) / 10)
+
+    //for each impact/frame, adjust respective index
+    for (var i in impacts) {
+        i = parseInt(i)
+        impacts[i][2] = impacts[i][2] - 1
+        //impacts[i][0] = x
+        //impacts[i][1] = y
+        u[2][impacts[i][0]][impacts[i][1]] = -Math.sin((time+1) / 10)
     }
-        
-    console.log('step 2')
-    console.log('u[0]:',JSON.parse(JSON.stringify(u[0])))
-    console.log('uCopy[1]:',JSON.parse(JSON.stringify(uCopy[1])))
-    console.log('u[2]:',JSON.parse(JSON.stringify(u[2])))
     
-    // if (time >= 300) {
-    //     return
-    // }
+    // remove impacts when completed
+    for (var i in impacts) {
+        if (impacts[i][2] == 0) {
+            impacts.splice(i,1)
+        }
+    }
+
+    // generate initial disturbance
+    if (time < 31) {
+            u[2][Math.floor(nx /2 )][Math.floor(ny / 2)] = -Math.sin((time+1) / 10)
+    }
+
     
     for (let i = 0; i < count; i++) { // iterate through each geometry vertex to assign z value
         // transform geometry coordinates to matrix indices
@@ -198,15 +243,12 @@ function animate() {
         // assumes nx,ny are odd
         const xGeometry = geometry.attributes.position.getX(i);
         const yGeometry = geometry.attributes.position.getY(i);
-        // console.log(xGeometry,yGeometry)
         const xMatrix = (xGeometry / dx) + (Math.floor(nx / 2))
         const yMatrix = (yGeometry / dy) + (Math.floor(ny / 2))
-        // console.log(xMatrix,yMatrix)
         
         // get elevation from simulation matrix, assign to geometry vertex
         const amplification = 2;
         const z = u[1][xMatrix][yMatrix] * amplification;
-        // console.log(z)
         geometry.attributes.position.setZ(i, z);
     }
     geometry.computeVertexNormals();
@@ -223,11 +265,6 @@ function animate() {
         throw new Error('computation exceeded loop')
     }
     
-
-    console.log('step 4')
-    console.log('u[0]:',JSON.parse(JSON.stringify(u[0])))
-    console.log('u[1]:',JSON.parse(JSON.stringify(u[1])))
-    console.log('u[2]:',JSON.parse(JSON.stringify(u[2])))
 
     requestAnimationFrame(animate);
 }
